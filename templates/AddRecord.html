@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}PasswordMind{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Add a Record</h1>
+</div>
+{{ wtf.quick_form(form) }}
+{% endblock %}
+
+
+
+
+

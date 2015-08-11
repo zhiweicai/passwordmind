@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}PasswordMind{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Total Records: {{ recordcount }}</h1>
+</div>
+
+<ul class="posts">
+{% for item in records %}
+    <li class="post">
+        <div class="post-body">
+          <a href="{{ url_for('.item', id = item.id) }}">
+             {{ item.displayname }},{{ item.username }}
+          </a>
+
+          <a href="{{ url_for('.edititem', id=item.id) }}">
+              <span class="label label-primary">Edit</span>
+          </a>
+
+          <a href="{{ url_for('.deleteitem', id=item.id) }}">
+              <span class="label label-primary">Delete</span>
+          </a>
+        </div>
+    </li>
+{% endfor %}
+</ul>
+
+{% endblock %}
+
+
+
+
+

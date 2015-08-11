@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}PasswordMind{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    Hello,
+    {% if current_user.is_authenticated() %}
+    {{ current_user.username }}
+    {% else %}
+    Stranger
+    {% endif %}!
+</div>
+{% endblock %}
+
+
+
+
+
