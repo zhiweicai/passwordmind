@@ -5,9 +5,11 @@ from wtforms import StringField, PasswordField,SubmitField,TextAreaField
 from wtforms.validators import Required,Optional
 from flask.ext.sqlalchemy import SQLAlchemy
 import os.path
-from flask.ext.login import login_user,logout_user, login_required
-from flask.ext.login import LoginManager
-from flask.ext.login import UserMixin
+from flask.ext.login import login_user,logout_user, login_required,LoginManager,UserMixin
+from flask.ext.script import Manager,Shell
+from flask.ext.migrate import Migrate, MigrateCommand
+
+
 
 
 
@@ -25,6 +27,9 @@ login_manager = LoginManager(app)
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'login'
 
+manager = Manager(app)
+migrate = Migrate(app, db)
+manager.add_command('db', MigrateCommand)
 
 
 
@@ -101,6 +106,7 @@ def deleteitem(id):
     myitem = PasswordRecords.query.get_or_404(id)
     db.session.delete (myitem)
     db.session.commit ()
+    flash('record has been deleted!')
     return render_template('index.html')
 
 
@@ -168,7 +174,7 @@ class Users(UserMixin,db.Model):
 class PasswordRecords(db.Model):
     __tablename__ = 'passwordrecord'
     id = db.Column(db.Integer, primary_key=True)
-    displayname = db.Column(db.String(80), unique=True)
+    displayname = db.Column(db.String(80), unique=False)
     username = db.Column(db.String(80), unique=False)
     password = db.Column(db.String(80), unique=False)
     detail = db.Column(db.String(512), unique=False)
@@ -182,6 +188,10 @@ class PasswordRecords(db.Model):
     def __repr__(self):
         return '<Record %r>' % self.displayname
 
+def make_shell_context():
+    return dict(app=app, db=db, Users=Users, PasswordRecords=PasswordRecords)
+manager.add_command("shell", Shell(make_context=make_shell_context))
+
 
 if __name__ == '__main__':
-    app.run()
+    manager.run()
