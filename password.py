@@ -8,18 +8,19 @@ import os.path
 from flask.ext.login import login_user,logout_user, login_required,LoginManager,UserMixin
 from flask.ext.script import Manager,Shell
 from flask.ext.migrate import Migrate, MigrateCommand
-
+from simplecrypt import encrypt, decrypt
 
 
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'hard to guess string'
 
 bootstrap = Bootstrap(app)
-app.config['SQLALCHEMY_DATABASE_URI'] =\
-'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+globalkey="test"
+
+app.config.from_object('config')
+app.config['SECRET_KEY'] = 'hard to guess string'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 db = SQLAlchemy(app)
 
@@ -58,6 +59,7 @@ def login():
         user = Users.query.filter_by(username=form.username.data).first()
         if user is not None and user.password == form.password.data :
             login_user(user,True)
+            globalkey = user.username
             return render_template('index.html')
         flash ('Invalid username or password!')
     return render_template('login.html', form=form)
@@ -95,7 +97,7 @@ def item(id):
     myitem = PasswordRecords.query.get_or_404(id)
     site = myitem.displayname
     username = myitem.username
-    password = myitem.password
+    password = decrypt(globalkey, myitem.password)
     detail = myitem.detail
     return render_template('item.html',name=site,name2="http://" + site,username=username,password=password,detail=detail)
 
@@ -119,7 +121,7 @@ def edititem(id):
     if form.validate_on_submit():
             myitem.displayname = form.website.data
             myitem.username = form.username.data
-            myitem.password = form.password.data
+            myitem.password = encrypt(globalkey, form.password.data)
             myitem.detail = form.details.data
             db.session.add (myitem)
             db.session.commit ()
@@ -127,7 +129,7 @@ def edititem(id):
 
     form.website.data = myitem.displayname
     form.username.data = myitem.username
-    form.password.data = myitem.password
+    form.password.data = decrypt(globalkey, myitem.password)
     form.details.data = myitem.detail
 
     return render_template('edititem.html',name="adding",form = form)
@@ -136,20 +138,18 @@ def edititem(id):
 @app.route('/Add', methods=['GET', 'POST'])
 @login_required
 def add ():
-    name = None
     form = PasswordForm()
     if form.validate_on_submit():
         sName = form.website.data
         sUser = form.username.data
-        sPassword = form.password.data
+        sPassword = encrypt(globalkey, form.password.data)
         sDetail = form.details.data
 
         session['recordname'] = sName
-        newsite = PasswordRecords.query.filter_by(displayname=sName).first()
+        newsite = PasswordRecords.query.filter_by(displayname=sName,username=sUser).first()
         if newsite is None:
            newsite = PasswordRecords (displayname=sName,username=sUser, password=sPassword,detail = sDetail)
            db.session.add (newsite)
-           form.website.data = ''
            db.session.commit ()
            return render_template('AddSuccess.html',recordname = session.get('recordname'))
         return render_template('Duplicate.html',recordname = session.get('recordname'))
@@ -172,12 +172,12 @@ class Users(UserMixin,db.Model):
 
 
 class PasswordRecords(db.Model):
-    __tablename__ = 'passwordrecord'
+    __tablename__ = 'record'
     id = db.Column(db.Integer, primary_key=True)
-    displayname = db.Column(db.String(80), unique=False)
+    displayname = db.Column(db.String(128), unique=False)
     username = db.Column(db.String(80), unique=False)
-    password = db.Column(db.String(80), unique=False)
-    detail = db.Column(db.String(512), unique=False)
+    password = db.Column(db.LargeBinary(512), unique=False)
+    detail = db.Column(db.String(2048), unique=False)
 
     def __init__(self, displayname, username,password,detail):
         self.displayname = displayname
